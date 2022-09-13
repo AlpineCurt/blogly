@@ -17,4 +17,11 @@ class User(db.Model):
     last_name = db.Column(db.String, nullable=True)
     image_url = db.Column(db.String, nullable=True)
 
+    @classmethod
+    def get_user_by_id(cls, user_id):
+        return cls.query.get(user_id)
     
+    def update_user(self, update_info):
+        """Updates all fields from dictionary user_info"""
+        for key in update_info:
+            setattr(self, key, update_info[key])
