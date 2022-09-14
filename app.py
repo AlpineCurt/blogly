@@ -53,19 +53,20 @@ def create_user():
 @app.route("/users/<int:user_id>/edit", methods=["GET"])
 def edit_user(user_id):
     user = User.query.get_or_404(user_id)
+    
     return render_template("edit_user.html", user=user)
 
 @app.route("/users/<int:user_id>/edit", methods=["POST"])
 def edit_user_post(user_id):
-    # first_name = request.form["first_name"]
-    # last_name = request.form["last_name"]
-    # image_url = request.form["image_url"]
     update_info = dict(request.form)
-    #import pdb; pdb.set_trace()
-
     user = User.get_user_by_id(user_id)
     user.update_user(update_info)
     db.session.add(user)
     db.session.commit()
-    
+    return redirect("/users")
+
+@app.route("/users/<int:user_id>/delete", methods=["POST"])
+def delete_user(user_id):
+    User.query.filter_by(id=user_id).delete()
+    db.session.commit()
     return redirect("/users")

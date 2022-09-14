@@ -5,7 +5,13 @@
 {% block content %}
 <img src="{{user.image_url}}" alt=""><br>
 {{user.first_name}}
-{{user.last_name}}<br>
-<a href="/users/{{user.id}}/edit">Edit</a><br>
-<a href="">Delete</a><br>
+{{user.last_name}}<br><br>
+<form action="/users/{{user.id}}/edit" method="GET">
+    <button>Edit</button>
+</form><br>
+<form action="/users/{{user.id}}/delete" method="POST">
+    <button>Delete</button>
+</form>
+<!-- <a href="/users/{{user.id}}/edit">Edit</a><br>
+<a href="/users/{{user.id}}/delete">Delete</a><br> -->
 {% endblock %}
