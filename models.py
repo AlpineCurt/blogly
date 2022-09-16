@@ -25,3 +25,19 @@ class User(db.Model):
         """Updates all fields from dictionary user_info"""
         for key in update_info:
             setattr(self, key, update_info[key])
+
+class Post(db.Model):
+
+    __tablename__ = "posts"
+
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    title = db.Column(db.Text, nullable=False)
+    content = db.Column(db.Text, nullable=False)
+    created_at = db.Column(db.DateTime, server_default=db.func.now())
+    user = db.Column(db.Integer, db.ForeignKey('users.id'))
+
+    user_id = db.relationship('User', backref="posts")
+
+    @classmethod
+    def get_posts_by_user_id(cls, user_id):
+        return cls.query.filter_by(user=user_id).all()

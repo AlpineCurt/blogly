@@ -2,7 +2,7 @@
 
 from crypt import methods
 from flask import Flask, request, render_template, redirect, flash, session
-from models import db, connect_db, User
+from models import db, connect_db, User, Post
 from flask_debugtoolbar import DebugToolbarExtension
 
 app = Flask(__name__)
@@ -30,7 +30,8 @@ def user_list():
 def show_user(user_id):
     """Show details about a user"""
     user = User.query.get_or_404(user_id)
-    return render_template("user_details.html", user=user)
+    posts = Post.get_posts_by_user_id(user_id)
+    return render_template("user_details.html", user=user, posts=posts)
 
 @app.route("/users/new", methods=["GET"])
 def new_user():
@@ -52,12 +53,14 @@ def create_user():
 
 @app.route("/users/<int:user_id>/edit", methods=["GET"])
 def edit_user(user_id):
+    """Edit a user's info"""
     user = User.query.get_or_404(user_id)
     
     return render_template("edit_user.html", user=user)
 
 @app.route("/users/<int:user_id>/edit", methods=["POST"])
 def edit_user_post(user_id):
+    """Submit edits to a user's info"""
     update_info = dict(request.form)
     user = User.get_user_by_id(user_id)
     user.update_user(update_info)
@@ -67,6 +70,13 @@ def edit_user_post(user_id):
 
 @app.route("/users/<int:user_id>/delete", methods=["POST"])
 def delete_user(user_id):
+    """Delete a user"""
     User.query.filter_by(id=user_id).delete()
     db.session.commit()
     return redirect("/users")
+
+@app.route("/users/<int:user_id>/posts/new", methods=["GET"])
+def new_post(user_id):
+    """Display page for createing a new post"""
+    user = User.get_user_by_id(user_id)
+    return render_template("new_post.html", user=user)
