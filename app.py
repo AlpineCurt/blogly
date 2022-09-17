@@ -80,3 +80,45 @@ def new_post(user_id):
     """Display page for createing a new post"""
     user = User.get_user_by_id(user_id)
     return render_template("new_post.html", user=user)
+
+@app.route("/users/<int:user_id>/posts/new", methods=["POST"])
+def new_post_submit(user_id):
+    title = request.form["title"]
+    content = request.form["content"]
+    user = user_id
+    new_post = Post(title=title, content=content, user=user)
+    db.session.add(new_post)
+    db.session.commit()
+    return redirect(f"/users/{user_id}")
+
+@app.route("/posts/<int:post_id>")
+def show_post(post_id):
+    """Shows a single post"""
+    post = Post.query.get(post_id)
+    user = User.query.get(post.user)
+    return render_template("post_details.html", post=post, user=user)
+
+@app.route("/posts/<int:post_id>/edit", methods=["GET"])
+def edit_post(post_id):
+    """Edit a post"""
+    post = Post.query.get(post_id)
+    user = User.query.get(post.user)
+    return render_template("edit_post.html", post=post, user=user)
+
+@app.route("/posts/<int:post_id>/edit", methods=["POST"])
+def edit_post_submuit(post_id):
+    title = request.form["title"]
+    content = request.form["content"]
+    post = Post.query.get(post_id)
+    post.title = title
+    post.content = content
+    db.session.add(post)
+    db.session.commit()
+    return redirect(f"/posts/{post_id}")
+
+@app.route("/posts/<int:post_id>/delete", methods=["POST"])
+def delete_post(post_id):
+    """Delete a post"""
+    Post.query.filter_by(id=post_id).delete()
+    db.session.commit()
+    return redirect("/users")

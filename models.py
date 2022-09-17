@@ -17,6 +17,8 @@ class User(db.Model):
     last_name = db.Column(db.String, nullable=True)
     image_url = db.Column(db.String, nullable=True)
 
+    post_id = db.relationship('Post', cascade="all, delete")
+
     @classmethod
     def get_user_by_id(cls, user_id):
         return cls.query.get(user_id)
@@ -36,7 +38,7 @@ class Post(db.Model):
     created_at = db.Column(db.DateTime, server_default=db.func.now())
     user = db.Column(db.Integer, db.ForeignKey('users.id'))
 
-    user_id = db.relationship('User', backref="posts")
+    #user_id = db.relationship('User', cascade="all, delete-orphan")
 
     @classmethod
     def get_posts_by_user_id(cls, user_id):

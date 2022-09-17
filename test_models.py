@@ -1,7 +1,7 @@
 from unittest import TestCase
 
 from app import app
-from models import db, User
+from models import db, User, Post
 
 app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql:///blogly_test'
 app.config['SQLALCHEMY_ECHO'] = False
@@ -33,3 +33,12 @@ class UserModelTestCase(TestCase):
         self.assertEqual(test_user.first_name, "Harry")
         self.assertEqual(test_user.last_name, "Winston")
         self.assertEqual(test_user.image_url, "http://www.harrywinston.com")
+
+class PostModelTestCase(TestCase):
+    """Tests for Post Model"""
+
+    def setUp(self):
+        Post.query.delete()
+    
+    def tearDown(self):
+        db.session.rollback()
