@@ -1,7 +1,7 @@
 from unittest import TestCase
 
 from app import app
-from models import db, User, Post
+from models import db, User, Post, Tag, PostTag
 
 app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql:///blogly_test'
 app.config['SQLALCHEMY_ECHO'] = False
@@ -187,3 +187,86 @@ class PostsTestCase(TestCase):
             self.assertEqual(post1, None)
             self.assertNotEqual(post2, None)
             self.assertNotEqual(user2, None)
+
+class TagsTestCase(TestCase):
+
+    def setUp(self):
+        """Reset the test database"""
+        db.drop_all()
+        db.create_all()
+
+        """Add some test users"""
+        self.u1 = User(first_name="Jeff", last_name="Goldblum", image_url=f"https://d26oc3sg82pgk3.cloudfront.net/files/media/edit/image/21525/square_thumb%402x.jpg")
+        self.u2 = User(first_name="Stevie", last_name="Budd", image_url="https://img.sharetv.com/shows/characters/thumbnails/schitts_creek_ca.stevie_budd.jpg")
+
+        db.session.add_all([self.u1, self.u2])
+        db.session.commit()
+
+        """Add some test posts"""
+        self.p1 = Post(title="In the Jeep", content="Getting chased by a T-Rex and this guy won't drive any faster.  fml", user_id=1)
+        self.p2 = Post(title="Ew, David!", content="I'm not the one that says Ew, David", user_id=2)
+
+        db.session.add_all([self.p1, self.p2])
+        db.session.commit()
+
+        """Add some test tags"""
+        self.t1 = Tag(name="cute")
+        self.t2 = Tag(name="funny")
+        self.t3 = Tag(name="political")
+
+        db.session.add_all([self.t1, self.t2, self.t3])
+        db.session.commit()
+
+        """Add the tags to the posts via post_tags table"""
+        self.pt1 = PostTag(post=1, tag=2)
+        self.pt2 = PostTag(post=2, tag=2)
+        self.pt3 = PostTag(post=1, tag=3)
+
+        db.session.add_all([self.pt1, self.pt2, self.pt3])
+        db.session.commit()
+
+    def tearDown(self):
+        """Clear any botched commits"""
+        db.session.rollback()
+
+    def test_delete_tag(self):
+        """Delete a tag.  Post and user should remain.
+        Related PostTags should be deleted"""
+        with app.test_client() as client:
+            """Verify post, user, tag, and posttags exist before altering"""
+            post = Post.query.get(1)
+            user = User.query.get(1)
+            tag = Tag.query.get(2)
+            posttags = PostTag.query.filter(PostTag.post==1).all()
+
+            self.assertEqual(post.title, "In the Jeep")
+            self.assertEqual(user.first_name, "Jeff")
+            self.assertEqual(tag.name, "funny")
+            self.assertEqual(len(posttags), 2)
+
+            resp = client.post("/tags/2/delete")
+            tag1 = Tag.query.filter_by(id=2).first()
+            post1 = Post.query.filter_by(id=1).first()
+            post2 = Post.query.filter_by(id=2).first()
+            user1 = User.query.filter_by(id=1).first()
+            posttag1 = PostTag.query.filter(PostTag.post==1).all()
+            posttag2 = PostTag.query.filter(PostTag.post==2).all()
+
+            self.assertEqual(resp.status_code, 302)
+            self.assertEqual(tag1, None)  # Tag should be gone
+            self.assertNotEqual(post1, None)  # First Post that had the tag should remain
+            self.assertNotEqual(post2, None)  # Second Post that had the tag should remain
+            self.assertNotEqual(user1, None)  # User should remain
+            self.assertEqual(len(posttag1), 1) # Post 1 should have one tag now
+            self.assertEqual(len(posttag2), 0) # Post 2 should have no tags now
+
+    def test_delete_post(self):
+        """Delete a Post.  Tags should remain.
+        Related rows in post_tags should be deleted."""
+        with app.test_client() as client:
+            resp = client.post("/posts/1/delete")
+            tags = Tag.query.all()
+            posttags = PostTag.query.all()
+
+            self.assertEqual(len(tags), 3)  # Tags should remain
+            self.assertEqual(len(posttags), 1)  # two post_tag rows should be gone.
