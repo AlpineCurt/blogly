@@ -17,7 +17,7 @@ class User(db.Model):
     last_name = db.Column(db.String, nullable=True)
     image_url = db.Column(db.String, nullable=True)
 
-    posts = db.relationship('Post', passive_deletes=True, backref="user")
+    posts = db.relationship('Post', cascade="all, delete-orphan", backref="user")
     #posts = db.relationship('Post', passive_deletes=True, backref="user_")  This one works!
     #posts = db.relationship('Post', cascade='all, delete-orphan')
     #post = db.relationship('Post', ondelete="CASCADE")
@@ -39,9 +39,10 @@ class Post(db.Model):
     title = db.Column(db.Text, nullable=False)
     content = db.Column(db.Text, nullable=False)
     created_at = db.Column(db.DateTime, server_default=db.func.now())
-    user_id = db.Column(db.Integer, db.ForeignKey('users.id', ondelete="CASCADE"))
+    #user_id = db.Column(db.Integer, db.ForeignKey('users.id', ondelete="CASCADE"))
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
 
-    tags = db.relationship('Tag', secondary='post_tags', backref='posts')
+    tags = db.relationship('Tag', secondary='post_tags', passive_deletes=True, cascade="all, delete")
 
     #user_id = db.relationship('User', cascade="all, delete-orphan")
 
@@ -56,11 +57,13 @@ class Tag(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     name = db.Column(db.Text, unique=True)
 
+    posts = db.relationship('Post', secondary='post_tags', passive_deletes=True, cascade="all, delete")
+
 
 class PostTag(db.Model):
 
     __tablename__ = "post_tags"
 
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    post = db.Column(db.Integer, db.ForeignKey('posts.id'), primary_key=True, nullable=False)
-    tag = db.Column(db.Integer, db.ForeignKey('tags.id'), primary_key=True, nullable=False)
+    post = db.Column(db.Integer, db.ForeignKey('posts.id', ondelete="CASCADE"), primary_key=True, nullable=False)
+    tag = db.Column(db.Integer, db.ForeignKey('tags.id', ondelete="CASCADE"), primary_key=True, nullable=False)
