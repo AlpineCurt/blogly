@@ -93,8 +93,8 @@ class PostsTestCase(TestCase):
         db.session.commit()
 
         """Add some test posts"""
-        self.p1 = Post(title="In the Jeep", content="Getting chased by a T-Rex and this guy won't drive any faster.  fml", user=1)
-        self.p2 = Post(title="Ew, David!", content="I'm not the one that says Ew, David", user=2)
+        self.p1 = Post(title="In the Jeep", content="Getting chased by a T-Rex and this guy won't drive any faster.  fml", user_id=1)
+        self.p2 = Post(title="Ew, David!", content="I'm not the one that says Ew, David", user_id=2)
 
         db.session.add_all([self.p1, self.p2])
         db.session.commit()
@@ -149,3 +149,41 @@ class PostsTestCase(TestCase):
 
             self.assertEqual(test_post.title, "Are we Human")
             self.assertEqual(test_post.content, "Or are we dancers")
+    
+    def test_delete_post(self):
+        """Test deleting a post.  Users should be untouched"""
+        with app.test_client() as client:
+            post1 = Post.query.filter_by(id=2).first()
+            self.assertNotEqual(post1, None) # Verify post exists before testing deletion
+
+            resp = client.post("/posts/2/delete")
+            post2 = Post.query.filter_by(id=2).first()
+            users = User.query.all()
+
+            self.assertEqual(resp.status_code, 302)
+            self.assertEqual(post2, None)  # The same same post should now be gone
+            self.assertEqual(len(users), 2) # Users should be untouched
+    
+    def test_delete_user(self):
+        """Test deleting user.  User's posts should be deleted.
+        Other users and posts should be untouched."""
+        with app.test_client() as client:
+            '''Verify post and user exist before deleting'''
+            post1 = Post.query.filter_by(id=1).first()
+            user1 = User.query.filter_by(id=1).first()
+            user4 = User.query.filter_by(id=4).first()
+            self.assertNotEqual(post1, None)
+            self.assertNotEqual(user1, None)
+            self.assertEqual(user4, None)
+
+            resp = client.post("/users/1/delete")
+
+            '''user1 and post1 should be gone, and others should remain'''
+            post1 = Post.query.filter_by(id=1).first()
+            user1 = User.query.filter_by(id=1).first()
+            post2 = Post.query.filter_by(id=2).first()
+            user2 = User.query.filter_by(id=2).first()
+            self.assertEqual(user1, None)
+            self.assertEqual(post1, None)
+            self.assertNotEqual(post2, None)
+            self.assertNotEqual(user2, None)
