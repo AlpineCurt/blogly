@@ -4,6 +4,7 @@ from crypt import methods
 from flask import Flask, request, render_template, redirect, flash, session
 from models import db, connect_db, User, Post, Tag, PostTag
 from flask_debugtoolbar import DebugToolbarExtension
+from sqlalchemy.sql import text
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql:///blogly'
@@ -18,7 +19,8 @@ connect_db(app)
 
 @app.route("/")
 def home_page():
-    return redirect("/users")
+    posts = Post.query.order_by(db.desc(text('created_at'))).limit(5).all()
+    return render_template("home_page.html", posts=posts)
 
 """USERS"""
 
@@ -81,14 +83,17 @@ def delete_user(user_id):
 def new_post(user_id):
     """Display page for createing a new post"""
     user = User.get_user_by_id(user_id)
-    return render_template("new_post.html", user=user)
+    tags = Tag.query.all()
+    return render_template("new_post.html", user=user, tags=tags)
 
 @app.route("/users/<int:user_id>/posts/new", methods=["POST"])
 def new_post_submit(user_id):
     title = request.form["title"]
     content = request.form["content"]
+    tag_ids = request.form.getlist('tags', int)
+    tags = Tag.query.filter(Tag.id.in_(tag_ids)).all()
     user = user_id
-    new_post = Post(title=title, content=content, user_id=user)
+    new_post = Post(title=title, content=content, user_id=user, tags=tags)
     db.session.add(new_post)
     db.session.commit()
     return redirect(f"/users/{user_id}")
@@ -135,10 +140,26 @@ def tag_list():
     tags = Tag.query.all()
     return render_template("tags.html", tags=tags)
 
+@app.route("/tags/<int:tag_id>")
+def show_tag(tag_id):
+    """List posts containing tag_id"""
+    tag = Tag.query.get(tag_id)
+    posts = tag.posts
+    return render_template("show_tag.html", tag=tag, posts=posts)
+
 @app.route("/tags/new", methods=["GET"])
 def new_tag():
     """Create a Tag page"""
     return render_template("new_tag.html")
+
+@app.route("/tags/new", methods=["POST"])
+def new_tag_post():
+    """Submit and add a new tag to database"""
+    tag_name = request.form["tag_name"]
+    new_tag = Tag(name=tag_name)
+    db.session.add(new_tag)
+    db.session.commit()
+    return redirect("/tags")
 
 @app.route("/tags/<int:tag_id>/edit", methods=["GET"])
 def edit_tag(tag_id):
@@ -161,19 +182,3 @@ def delete_tag(tag_id):
     Tag.query.filter_by(id=tag_id).delete()
     db.session.commit()
     return redirect("/tags")
-
-@app.route("/tags/new", methods=["POST"])
-def new_tag_post():
-    """Submit and add a new tag to database"""
-    tag_name = request.form["tag_name"]
-    new_tag = Tag(name=tag_name)
-    db.session.add(new_tag)
-    db.session.commit()
-    return redirect("/tags")
-
-@app.route("/tags/<int:tag_id>")
-def show_tag(tag_id):
-    """List posts containing tag_id"""
-    tag = Tag.query.get(tag_id)
-    posts = tag.posts
-    return render_template("show_tag.html", tag=tag, posts=posts)

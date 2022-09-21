@@ -18,9 +18,6 @@ class User(db.Model):
     image_url = db.Column(db.String, nullable=True)
 
     posts = db.relationship('Post', cascade="all, delete-orphan", backref="user")
-    #posts = db.relationship('Post', passive_deletes=True, backref="user_")  This one works!
-    #posts = db.relationship('Post', cascade='all, delete-orphan')
-    #post = db.relationship('Post', ondelete="CASCADE")
 
     @classmethod
     def get_user_by_id(cls, user_id):
@@ -39,13 +36,10 @@ class Post(db.Model):
     title = db.Column(db.Text, nullable=False)
     content = db.Column(db.Text, nullable=False)
     created_at = db.Column(db.DateTime, server_default=db.func.now())
-    #user_id = db.Column(db.Integer, db.ForeignKey('users.id', ondelete="CASCADE"))
     user_id = db.Column(db.Integer, db.ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
 
     tags = db.relationship('Tag', secondary='post_tags', passive_deletes=True, cascade="all, delete")
-
-    #user_id = db.relationship('User', cascade="all, delete-orphan")
-
+    
     @classmethod
     def get_posts_by_user_id(cls, user_id):
         return cls.query.filter_by(user_id=user_id).all()
